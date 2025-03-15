@@ -1,13 +1,17 @@
 package application;
 
 import core.exceptions.ProductNotFoundException;
-import core.exceptions.InsufficientPaymentException;
 import core.ports.SaleHandler;
+import core.usecases.SaleService;
+import infrastructure.persistence.*;
+
+import java.sql.SQLException;
 import java.util.Scanner;
 
 public class SupermarketCLI {
     private final SaleHandler saleHandler;
     private final Scanner scanner = new Scanner(System.in);
+
 
     public SupermarketCLI(SaleHandler saleHandler) {
         this.saleHandler = saleHandler;
@@ -25,46 +29,43 @@ public class SupermarketCLI {
         }
     }
 
-private void handleNewSale() {
-    saleHandler.startNewSale();
-    boolean addingItems = true;
-    
-    while (addingItems) {
-        System.out.println("1. Adicionar item | 2. Concluir venda");
-        int choice = scanner.nextInt();
-        if (choice == 1) {
-            System.out.print("ID do produto: ");
-            int productId = scanner.nextInt();
-            try {
-                saleHandler.addItemToSale(productId, 1);
-                System.out.print("Quantidade: ");
-                int quantity = scanner.nextInt();
-                saleHandler.addItemToSale(productId, quantity - 1);
-            } catch (ProductNotFoundException e) {
-                System.out.println("Erro: " + e.getMessage());
+    private void handleNewSale() {
+    	SQLiteSaleRepository saleRepo = null;
+    	try {
+			saleRepo = new SQLiteSaleRepository("sales.db");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+        saleHandler.startNewSale();
+        boolean addingItems = true;
+        while (addingItems) {
+            System.out.println("1. Adicionar item | 2. Concluir venda");
+            int choice = scanner.nextInt();
+            if (choice == 1) {
+                System.out.print("ID do produto: ");
+                int productId = scanner.nextInt();
+                try {
+                    saleHandler.addItemToSale(productId, 1);
+                    System.out.print("Quantidade: ");
+                    int quantity = scanner.nextInt();
+                    saleHandler.addItemToSale(productId, quantity - 1);
+                } catch (ProductNotFoundException e) {
+                    System.out.println("Erro: " + e.getMessage());
+                }
+            } else {
+                addingItems = false;
+				saleRepo.save(SaleService.returnSale());
+                concludeSale();
             }
-        } else {
-            addingItems = false;
-            concludeSale();
         }
     }
-}
 
-private void concludeSale() {
-    double total = saleHandler.concludeSale();
-    System.out.println("Total: R$ " + total);
-    
-    double paid;
-    while (true) {
-        try {
-            System.out.print("Valor pago: R$ ");
-            paid = scanner.nextDouble();
-            double change = saleHandler.calculateChange(paid);
-            System.out.println("Troco: R$ " + change);
-            break; 
-        } catch (InsufficientPaymentException e) {
-            System.out.println("Erro: " + e.getMessage() + " Tente novamente.");
-        }
+    private void concludeSale() {
+        double total = saleHandler.concludeSale();
+        System.out.println("Total: R$ " + total);
+        System.out.print("Valor pago: R$ ");
+        double paid = scanner.nextDouble();
+        System.out.println("Troco: R$ " + saleHandler.calculateChange(paid));
+        
     }
-}
 }

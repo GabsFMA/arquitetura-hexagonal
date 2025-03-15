@@ -1,13 +1,13 @@
 package core.usecases;
 
-import core.exceptions.InsufficientPaymentException;
-import core.exceptions.ProductNotFoundException;
 import core.ports.SaleHandler;
 import core.ports.ProductRepository;
+import core.exceptions.InsufficientPaymentException;
+import core.exceptions.ProductNotFoundException;
 import core.model.*;
 
 public class SaleService implements SaleHandler {
-    private Sale currentSale;
+    private static Sale currentSale;
     private final ProductRepository productRepository;
 
     public SaleService(ProductRepository productRepository) {
@@ -19,7 +19,6 @@ public class SaleService implements SaleHandler {
         currentSale = new Sale();
     }
 
-    @Override
     public void addItemToSale(int productId, int quantity) {
         productRepository.findById(productId)
             .ifPresentOrElse(
@@ -33,7 +32,6 @@ public class SaleService implements SaleHandler {
         return currentSale.getTotal();
     }
 
-
     @Override
     public double calculateChange(double amountPaid) {
         double total = currentSale.getTotal();
@@ -42,4 +40,8 @@ public class SaleService implements SaleHandler {
         }
         return Math.round((amountPaid - total) * 100.0) / 100.0; 
     }
+
+	public static Sale returnSale() {
+		return currentSale;
+	}
 }
